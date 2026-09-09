@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 값을 CMYK로</title>
+<style>
+  :root {
+    --paper: #E7E7E2;
+    --ink: #1B1D1A;
+    --muted: #6E7069;
+    --rule: #C6C7C0;
+    --field: #F4F4F0;
+    --cyan: #009EE0;
+    --magenta: #D6006E;
+    --yellow: #F0C000;
+    --key: #1B1D1A;
+    --alert: #A33B1F;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 40px 24px 64px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Pretendard", "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet { max-width: 880px; margin: 0 auto; }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+
+  .intro {
+    margin: 0 0 36px;
+    max-width: 46ch;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+
+  /* ── 입력 ───────────────────────────── */
+  .field { margin-bottom: 26px; }
+
+  .field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .field-head label {
+    font-size: 19px;
+    font-weight: 600;
+    font-style: italic;
+  }
+
+  .field-head .range {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--field);
+    color: inherit;
+    font: inherit;
+    font-size: 22px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+
+  input[type="text"]:focus {
+    outline: 2px solid var(--ink);
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+
+  .input-row {
+    display: flex;
+  }
+
+  .input-row input { flex: 1 1 auto; }
+
+  .axis {
+    height: 5px;
+    margin-top: 7px;
+    border-radius: 3px;
+  }
+  .axis-l { background: linear-gradient(90deg, #000, #fff); }
+  .axis-a { background: linear-gradient(90deg, #00A550, #B9BAB4, #E2007A); }
+  .axis-b { background: linear-gradient(90deg, #0B5FBE, #B9BAB4, #F5DC00); }
+
+  /* ── 출력 ───────────────────────────── */
+  .swatch {
+    aspect-ratio: 5 / 3;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: #fff;
+    transition: background-color .18s ease;
+  }
+
+  .swatch-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 10px 0 30px;
+    font-size: 13px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .warn { color: var(--alert); }
+  .warn[hidden] { display: none; }
+
+  .bar {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) 82px;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .bar:last-child { border-bottom: 1px solid var(--rule); }
+
+  .bar .name {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .track {
+    height: 10px;
+    background: rgba(0, 0, 0, .07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .fill {
+    height: 100%;
+    width: 0;
+    border-radius: 2px;
+    transition: width .18s ease;
+  }
+
+  .bar .value {
+    text-align: right;
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .c .name, .c .fill { color: var(--cyan); background-color: var(--cyan); }
+  .m .name, .m .fill { color: var(--magenta); background-color: var(--magenta); }
+  .y .name, .y .fill { color: var(--yellow); background-color: var(--yellow); }
+  .k .name, .k .fill { color: var(--key); background-color: var(--key); }
+  .bar .name { background: none !important; }
+
+  footer {
+    margin-top: 44px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    max-width: 62ch;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+
+  @media (max-width: 700px) {
+    .panels { grid-template-columns: 1fr; gap: 34px; }
+  }
+
+  @media (max-width: 380px) {
+    .bar { grid-template-columns: 20px minmax(0, 1fr) 74px; gap: 10px; }
+    .bar .value { font-size: 15px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>Lab 값을 CMYK로</h1>
+  <p class="intro">측색기에서 읽은 L, a, b 값을 넣으면 sRGB를 거쳐 계산한 근사 CMYK와 색을 함께 보여줍니다.</p>
+
+  <div class="panels">
+    <section>
+      <div class="field">
+        <div class="field-head">
+          <label for="in-l">L</label>
+          <span class="range">밝기 0 – 100</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="in-l" value="53.24" autocomplete="off">
+        </div>
+        <div class="axis axis-l"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label for="in-a">a</label>
+          <span class="range">초록 −128 – 127 빨강</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="in-a" value="80.09" autocomplete="off">
+        </div>
+        <div class="axis axis-a"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label for="in-b">b</label>
+          <span class="range">파랑 −128 – 127 노랑</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="in-b" value="67.20" autocomplete="off">
+        </div>
+        <div class="axis axis-b"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="swatch" id="swatch"></div>
+      <div class="swatch-meta">
+        <span id="hex">#FF0000</span>
+        <span class="warn" id="warn" hidden>색역을 벗어나 보정된 값</span>
+      </div>
+
+      <div class="bar c">
+        <span class="name">C</span>
+        <span class="track"><span class="fill" id="fill-c"></span></span>
+        <span class="value" id="val-c">0.00%</span>
+      </div>
+      <div class="bar m">
+        <span class="name">M</span>
+        <span class="track"><span class="fill" id="fill-m"></span></span>
+        <span class="value" id="val-m">0.00%</span>
+      </div>
+      <div class="bar y">
+        <span class="name">Y</span>
+        <span class="track"><span class="fill" id="fill-y"></span></span>
+        <span class="value" id="val-y">0.00%</span>
+      </div>
+      <div class="bar k">
+        <span class="name">K</span>
+        <span class="track"><span class="fill" id="fill-k"></span></span>
+        <span class="value" id="val-k">0.00%</span>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    D65 백색점과 sRGB 기준으로 계산한 수학적 근사값입니다. 잉크와 용지 특성을 담은 색 프로파일을 거치지 않으므로 실제 인쇄 결과와는 차이가 납니다. 교정쇄 대신 쓰지 마세요.
+  </footer>
+</div>
+
+<script>
+(function () {
+  var els = {
+    l: document.getElementById('in-l'),
+    a: document.getElementById('in-a'),
+    b: document.getElementById('in-b'),
+    swatch: document.getElementById('swatch'),
+    hex: document.getElementById('hex'),
+    warn: document.getElementById('warn')
+  };
+
+  function clamp(v, min, max) {
+    return v < min ? min : (v > max ? max : v);
+  }
+
+  // 키보드에 따라 들어오는 여러 형태의 빼기 기호를 하이픈으로 통일
+  function normalizeMinus(s) {
+    return String(s).replace(/[\u2212\u2012\u2013\u2014\uFF0D]/g, '-');
+  }
+
+  function readNumber(el, min, max) {
+    var s = normalizeMinus(el.value).replace(/[^0-9.\-]/g, '');
+    var negative = s.charAt(0) === '-';
+    var v = parseFloat(s.replace(/-/g, ''));
+    if (!isFinite(v)) v = 0;
+    if (negative) v = -v;
+    return clamp(v, min, max);
+  }
+
+  // Lab → XYZ (D65, 2° 관측자)
+  function labToXyz(L, a, b) {
+    var fy = (L + 16) / 116;
+    var fx = fy + a / 500;
+    var fz = fy - b / 200;
+    var d = 6 / 29;
+
+    function finv(t) {
+      return t > d ? t * t * t : 3 * d * d * (t - 4 / 29);
+    }
+
+    return [0.95047 * finv(fx), 1.00000 * finv(fy), 1.08883 * finv(fz)];
+  }
+
+  // XYZ → sRGB
+  function xyzToRgb(X, Y, Z) {
+    var r = 3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
+    var g = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
+    var b = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+
+    // 입력값 반올림에서 오는 미세한 초과는 경고 대상에서 제외
+    var outside = [r, g, b].some(function (v) { return v < -0.002 || v > 1.002; });
+
+    function gamma(v) {
+      v = clamp(v, 0, 1);
+      return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+    }
+
+    return { rgb: [gamma(r), gamma(g), gamma(b)], outside: outside };
+  }
+
+  // sRGB → CMYK (단순 변환)
+  function rgbToCmyk(r, g, b) {
+    var k = 1 - Math.max(r, g, b);
+    if (k >= 1) return [0, 0, 0, 1];
+    return [(1 - r - k) / (1 - k), (1 - g - k) / (1 - k), (1 - b - k) / (1 - k), k];
+  }
+
+  function toHex(rgb) {
+    return '#' + rgb.map(function (v) {
+      return Math.round(v * 255).toString(16).padStart(2, '0').toUpperCase();
+    }).join('');
+  }
+
+  function paint(id, pct) {
+    document.getElementById('fill-' + id).style.width = pct + '%';
+    document.getElementById('val-' + id).textContent = pct.toFixed(2) + '%';
+  }
+
+  function update() {
+    var L = readNumber(els.l, 0, 100);
+    var a = readNumber(els.a, -128, 127);
+    var b = readNumber(els.b, -128, 127);
+
+    var xyz = labToXyz(L, a, b);
+    var res = xyzToRgb(xyz[0], xyz[1], xyz[2]);
+    var cmyk = rgbToCmyk(res.rgb[0], res.rgb[1], res.rgb[2]);
+    var hex = toHex(res.rgb);
+
+    els.swatch.style.backgroundColor = hex;
+    els.hex.textContent = hex;
+    els.warn.hidden = !res.outside;
+
+    paint('c', cmyk[0] * 100);
+    paint('m', cmyk[1] * 100);
+    paint('y', cmyk[2] * 100);
+    paint('k', cmyk[3] * 100);
+  }
+
+  [els.l, els.a, els.b].forEach(function (el) {
+    el.addEventListener('input', update);
+    el.addEventListener('blur', update);
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>
